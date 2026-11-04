@@ -11,8 +11,9 @@ pip install -r requirements.txt
 
 ## Usage
 ```bash
-python -m pytest -q                 # 11 tests, ~20 s
+python -m pytest -q                 # 14 tests, ~20-35 s
 python -m mlops.pipeline            # the whole pipeline, ~11 s on 4 CPUs
+python -m mlops.pipeline --batch incoming.csv   # drift-check your own batch instead of the demo ones
 docker build -t adult-gbm .         # after the pipeline has written serving_model/
 docker run -p 8000:8000 adult-gbm
 curl -X POST localhost:8000/predict -H 'content-type: application/json' -d '{"rows":[{"age":45,"education_num":14,"hours_per_week":50,"capital_gain":0,"workclass":"Private","marital_status":"Married","occupation":"Exec","sex":"Female"}]}'
@@ -35,12 +36,12 @@ incoming batch ──► drift.drift_report (PSI per feature + KS for numerics) 
 |---|---|
 | `mlops/data.py` | seeded synthetic Adult-like generator, CSV loader, schema validation (columns, nulls, ranges, categories) |
 | `mlops/train.py` | sklearn pipeline, MLflow tracking and registration, alias promotion gate, export |
-| `mlops/drift.py` | PSI (bins from reference quantiles) and KS two-sample test, retrain if any PSI > 0.2 |
+| `mlops/drift.py` | validates the batch, then PSI (bins from reference quantiles, value-wise for constant features) and KS two-sample test, retrain if any PSI > 0.2 |
 | `mlops/serve.py` | FastAPI `/health` and `/predict`. Pydantic checks ranges and categories, so bad input gets a 422 |
 | `mlops/pipeline.py` | the one-command entry point |
 
 Design choices:
-- **Data.** UCI Adult could not be downloaded from this sandbox (proxy policy). So the default data is a seeded synthetic generator with Adult-like columns and a known logistic label, about 21 % positive. Put the real file at `data/raw/adult.csv` (with the same column names) and the pipeline uses it instead.
+- **Data.** UCI Adult could not be downloaded from this sandbox (proxy policy). So the default data is a seeded synthetic generator with Adult-like columns and a known logistic label, about 21 % positive. A real CSV at `data/raw/adult.csv` is used instead if it matches `data.py` exactly: same column names, category values and a 0/1 `income` target. The raw UCI file needs that mapping first, and `validate` rejects it otherwise. Check your own incoming rows with `--batch incoming.csv`.
 - **Stages.** MLflow 3 deprecates registry stages, so "promotion" sets the `production` alias, which is the replacement MLflow recommends.
 - **File store.** The SPEC asks for a local file store. MLflow 3 only allows it behind `MLFLOW_ALLOW_FILE_STORE=true`, which `train.py` sets. A `sqlite:///` URI also works.
 - **Serialization.** Models use skops, a safe format. Only the one HistGradientBoosting tree type that skops flags is trusted, and no pickle is used.

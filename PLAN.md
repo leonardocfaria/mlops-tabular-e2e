@@ -4,7 +4,7 @@
 - **What is it?** A portfolio-grade, reproducible tabular MLOps loop: data → validation → features → train → track → register → promote → serve → drift.
 - **Success:** `python -m mlops.pipeline` runs end to end from a clean checkout; MLflow run + registered model exist; Docker image serves `/predict`; drift report flags a shifted batch.
 - **Non-goals:** hyper-parameter search, a remote MLflow server, Kubernetes, auth.
-- **Data:** UCI Adult is blocked by the proxy (DECISIONS #3). Use a seeded synthetic Adult-like generator with the same kind of columns (numeric + categorical, ~24 % positive). `data/raw/adult.csv` is used instead if present.
+- **Data:** UCI Adult is blocked by the proxy (DECISIONS #3). Use a seeded synthetic Adult-like generator with the same kind of columns (numeric + categorical, ~21 % positive). `data/raw/adult.csv` is used instead if present.
 - **Registry stages:** MLflow 3 deprecates stages in favour of aliases. Promotion = set alias `production` when the new version beats a fixed AUC floor and the current production AUC.
 - **Docker:** a file-store registry stores absolute paths, so the pipeline exports the production model to `serving_model/`; the image copies that folder and loads it with `mlflow.sklearn.load_model`.
 

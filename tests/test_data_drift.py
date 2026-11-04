@@ -31,6 +31,15 @@ def test_psi_near_zero_same_distribution():
     assert psi(rng.normal(size=5000), rng.normal(size=5000)) < 0.02
 
 
+def test_psi_constant_reference_still_detects_change():
+    assert psi(np.zeros(100), np.ones(100)) > 0.2
+
+
+def test_drift_report_validates_incoming_batch():
+    with pytest.raises(ValueError, match="missing column age"):
+        drift_report(make_synthetic(100), make_synthetic(100).drop(columns="age"))
+
+
 def test_drift_report_flags_shifted_batch():
     ref = make_synthetic(4000, seed=0)
     same = drift_report(ref, make_synthetic(2000, seed=1))

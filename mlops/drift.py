@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import ks_2samp
 
-from .data import CATEGORICAL, NUMERIC
+from .data import CATEGORICAL, NUMERIC, validate
 
 PSI_RETRAIN = 0.2  # common rule of thumb: <0.1 stable, 0.1-0.2 moderate, >0.2 significant
 
@@ -19,6 +19,8 @@ def _psi_from_fractions(p, q, eps=1e-4):
 def psi(ref, cur, bins: int = 10) -> float:
     """PSI of a numeric feature, bins from reference quantiles."""
     edges = np.unique(np.quantile(ref, np.linspace(0, 1, bins + 1)))
+    if len(edges) < 3:  # (near-)constant reference: quantile bins collapse, compare values directly
+        return psi_categorical(pd.Series(np.asarray(ref)), pd.Series(np.asarray(cur)))
     edges[0], edges[-1] = -np.inf, np.inf
     p = np.histogram(ref, edges)[0] / len(ref)
     q = np.histogram(cur, edges)[0] / len(cur)
@@ -33,6 +35,7 @@ def psi_categorical(ref: pd.Series, cur: pd.Series) -> float:
 
 
 def drift_report(ref: pd.DataFrame, cur: pd.DataFrame) -> dict:
+    validate(cur, require_target=False)
     features = {}
     for c in NUMERIC:
         ks = ks_2samp(ref[c], cur[c])

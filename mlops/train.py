@@ -1,5 +1,6 @@
 """Train, track (MLflow file store), register, promote via alias, export for serving."""
 import os
+import shutil
 from pathlib import Path
 
 # SPEC asks for a local file store; MLflow 3 keeps it behind an opt-in. A sqlite:/// URI also works.
@@ -73,5 +74,6 @@ def export_production(tracking_uri: str, dst: str | Path) -> Path:
     """Copy the production model's MLflow artifacts to a plain folder (portable into Docker)."""
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_registry_uri(tracking_uri)
-    Path(dst).mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(dst, ignore_errors=True)  # no stale files from a previous export
+    Path(dst).mkdir(parents=True)
     return Path(mlflow.artifacts.download_artifacts(f"models:/{MODEL_NAME}@{ALIAS}", dst_path=str(dst)))
