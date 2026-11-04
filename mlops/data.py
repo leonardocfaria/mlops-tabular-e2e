@@ -35,9 +35,9 @@ def make_synthetic(n: int, seed: int = 0, shift: float = 0.0) -> pd.DataFrame:
         "sex": rng.choice(CATEGORIES["sex"], n, p=[0.67, 0.33]),
     })
     logit = (
-        -9.5 + 0.04 * df.age + 0.38 * df.education_num + 0.03 * df.hours_per_week
-        + 0.0003 * df.capital_gain + 1.4 * (df.marital_status == "Married")
-        + 0.7 * df.occupation.isin(["Exec", "Prof"]) + 0.3 * (df.sex == "Male")
+        -15 + 0.07 * df.age + 0.6 * df.education_num + 0.05 * df.hours_per_week
+        + 0.0005 * df.capital_gain + 2.2 * (df.marital_status == "Married")
+        + 1.1 * df.occupation.isin(["Exec", "Prof"]) + 0.5 * (df.sex == "Male")
     )
     df[TARGET] = (rng.random(n) < 1 / (1 + np.exp(-logit))).astype(int)
     return df
