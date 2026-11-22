@@ -1,0 +1,36 @@
+name: mlops-tabular-e2e
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+      - name: Pipeline end to end
+        run: python -m mlops.pipeline --rows 5000
+      - name: Docker image serves /predict
+        run: |
+          docker build -t adult-gbm:ci .
+          docker run -d --name api -p 8000:8000 adult-gbm:ci
+          for i in $(seq 30); do curl -sf localhost:8000/health && break; sleep 1; done
+          curl -sf -X POST localhost:8000/predict -H 'content-type: application/json' \
+            -d '{"rows":[{"age":45,"education_num":14,"hours_per_week":50,"capital_gain":0,"workclass":"Private","marital_status":"Married","occupation":"Exec","sex":"Female"}]}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drift-reports
+          path: reports/
